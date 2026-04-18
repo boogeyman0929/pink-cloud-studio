@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Send } from "lucide-react";
 
@@ -16,12 +16,20 @@ export const Route = createFileRoute("/")({
 
 const VIDEO_DURATION = 12.9;
 const LOOP_WINDOW = 3;
+const AUDIO_START_TIME = 25;
 
 function Index() {
   const [entered, setEntered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const loopingRef = useRef(false);
+
+  const base = import.meta.env.BASE_URL;
+
+  const videoSrc = useMemo(() => `${base}deface/video.mp4`, [base]);
+  const audioSrc = useMemo(() => `${base}deface/song-start.mp3`, [base]);
+  const mascotSrc = useMemo(() => `${base}deface/mascot.gif`, [base]);
+  const fontSrc = useMemo(() => `${base}fonts/minecraft.ttf`, [base]);
 
   const getLoopStart = (video: HTMLVideoElement) => {
     const duration =
@@ -35,12 +43,11 @@ function Index() {
     const v = videoRef.current;
     if (v) {
       v.muted = true;
+
       const playFromStart = () => {
         try {
           v.currentTime = 0;
-        } catch {
-          /* noop */
-        }
+        } catch {}
         v.play().catch(() => {});
       };
 
@@ -52,6 +59,7 @@ function Index() {
           v.removeEventListener("canplay", onReady);
           playFromStart();
         };
+
         v.addEventListener("loadedmetadata", onReady);
         v.addEventListener("canplay", onReady);
         v.load();
@@ -63,11 +71,11 @@ function Index() {
       const playAudio = () => {
         a.muted = false;
         a.volume = 1;
+
         try {
-          a.currentTime = 0;
-        } catch {
-          /* noop */
-        }
+          a.currentTime = AUDIO_START_TIME;
+        } catch {}
+
         a.play().catch(() => {});
       };
 
@@ -79,6 +87,7 @@ function Index() {
           a.removeEventListener("canplay", onReady);
           playAudio();
         };
+
         a.addEventListener("loadeddata", onReady);
         a.addEventListener("canplay", onReady);
         a.load();
@@ -94,6 +103,7 @@ function Index() {
 
     const playFromLoopStart = () => {
       const loopStart = getLoopStart(v);
+
       const resumePlayback = () => {
         v.removeEventListener("seeked", resumePlayback);
         v.play().catch(() => {});
@@ -104,9 +114,7 @@ function Index() {
 
       try {
         v.currentTime = loopStart;
-      } catch {
-        /* noop */
-      }
+      } catch {}
 
       if (Math.abs(v.currentTime - loopStart) < 0.05) {
         v.removeEventListener("seeked", resumePlayback);
@@ -123,6 +131,7 @@ function Index() {
         v.removeEventListener("canplay", onReady);
         playFromLoopStart();
       };
+
       v.addEventListener("loadedmetadata", onReady);
       v.addEventListener("canplay", onReady);
       v.load();
@@ -134,26 +143,29 @@ function Index() {
       <style>{`
         @font-face {
           font-family: 'MinecraftDeface';
-          src: url('/fonts/minecraft.ttf') format('truetype');
+          src: url('${fontSrc}') format('truetype');
           font-display: block;
         }
       `}</style>
 
       <video
         ref={videoRef}
-        src="/deface/video.mp4"
+        src={videoSrc}
         muted
         playsInline
+        preload="auto"
         onEnded={handleVideoEnded}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
           entered ? "opacity-40" : "opacity-0"
         }`}
       />
-      <audio ref={audioRef} src="/deface/song-start.mp3" preload="auto" />
+
+      <audio ref={audioRef} src={audioSrc} preload="auto" />
 
       <div className="absolute inset-0 bg-black/60" />
+
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
@@ -171,7 +183,7 @@ function Index() {
       ) : (
         <div className="absolute inset-0 flex flex-col items-center justify-start gap-6 px-4 pt-10 text-center md:pt-16">
           <img
-            src="/deface/mascot.gif"
+            src={mascotSrc}
             alt=""
             className="h-40 w-40 object-contain md:h-56 md:w-56"
             style={{ filter: "grayscale(1) contrast(1.1) brightness(1.1) invert(1)" }}
@@ -187,12 +199,14 @@ function Index() {
             >
               Kl - Party
             </h1>
+
             <p
               className="text-base tracking-[0.2em] text-white/80 md:text-xl"
               style={{ fontFamily: "'MinecraftDeface', monospace" }}
             >
               Defaced by Lost.sh X Empty.lol
             </p>
+
             <a
               href="https://t.me/lostcyb"
               target="_blank"
